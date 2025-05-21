@@ -1,0 +1,66 @@
+const minDelay = 205;
+const maxDelay = 210;
+
+const keyOverrides = {
+  [String.fromCharCode(160)]: ' ',
+};
+
+function getTargetCharacters() {
+  const tokenElements = Array.from(document.querySelectorAll('.token span.token_unit'));
+  return tokenElements.map((element) => {
+    if (element.firstChild?.classList?.contains('_enter')) {
+      return '\n';
+    }
+    let text = element.textContent[0];
+    return keyOverrides.hasOwnProperty(text) ? keyOverrides[text] : text;
+  });
+}
+
+function recordKey(character) {
+  window.core.record_keydown_time(character);
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function pressEnter() {
+  const enterEvent = new KeyboardEvent('keydown', {
+    bubbles: true,
+    cancelable: true,
+    keyCode: 13,
+    key: 'Enter',
+  });
+  document.body.dispatchEvent(enterEvent);
+}
+
+async function autoPlay() {
+  while (true) {
+    const characters = getTargetCharacters();
+    for (let i = 0; i < characters.length; i++) {
+      const character = characters[i];
+      recordKey(character);
+      await sleep(Math.random() * (maxDelay - minDelay) + minDelay);
+    }
+    await sleep(7000);
+    pressEnter();
+    await sleep(2000); // wait for the next lesson to load
+  }
+}
+
+const checkExist = setInterval(function () {
+  const root = document.getElementById("root");
+
+  if (root) {
+    const holder = root.firstElementChild.firstElementChild;
+    setTimeout(() => {
+      if (holder.children.length) {
+        const closeBtn = holder.getElementsByClassName("edmodal-x")[0];
+        if (closeBtn) closeBtn.click();
+      }
+      // Once modal is handled, start autoPlay
+      autoPlay();
+    }, 250);
+    clearInterval(checkExist);
+  }
+}, 100);
